@@ -1,0 +1,77 @@
+# =====================================================================
+#  Конфигурация торгового бота. Скопируйте в config.yaml и отредактируйте.
+#  API-ключи НЕ пишутся здесь — только в файле .env
+# =====================================================================
+
+# paper — симуляция на живых ценах (без реальных ордеров)
+# live  — реальная торговля (нужны API-ключи в .env)
+mode: paper
+
+exchange:
+  name: bingx
+  # spot — спот (только покупка/продажа, без плеча и шортов)
+  # swap — бессрочные USDT-фьючерсы (плечо, лонг и шорт)
+  market_type: spot
+  quote_currency: USDT
+
+# Торговые пары. Для spot: BTC/USDT; для swap: BTC/USDT:USDT
+symbols:
+  - BTC/USDT
+  - ETH/USDT
+
+timeframe: 15m          # 1m 5m 15m 30m 1h 4h 1d ...
+candles_limit: 500      # сколько свечей загружать для расчёта индикаторов
+poll_interval_sec: 30   # как часто проверять рынок (стопы проверяются с этой же частотой)
+
+strategy:
+  # mean_reversion — возврат к среднему (Bollinger + RSI + фильтр ADX)
+  # voting         — голосование 6 индикаторов (EMA, EMA200, MACD, RSI, Bollinger, OBV)
+  name: voting
+  params: {}            # пусто = параметры по умолчанию (см. README)
+  # Пример для mean_reversion:
+  # params:
+  #   bb_period: 20
+  #   bb_std: 2.0
+  #   rsi_oversold: 30
+  #   rsi_overbought: 70
+  #   max_adx: 30
+  # Пример для voting:
+  # params:
+  #   entry_threshold: 0.6
+  #   exit_threshold: 0.0
+  #   weights: {trend: 1, long_trend: 1, macd: 1, rsi: 1, bollinger: 0.5, volume: 0.5}
+
+risk:
+  risk_per_trade: 0.01      # риск на сделку = 1% капитала (потеря при срабатывании стопа)
+  max_position_pct: 0.25    # не более 25% капитала (маржи) в одной позиции
+  max_open_positions: 2
+  stop_loss_atr: 2.0        # стоп-лосс = 2 x ATR от цены входа
+  take_profit_atr: 3.0      # тейк-профит = 3 x ATR (null — отключить)
+  trailing_stop_atr: null   # трейлинг-стоп в ATR (например 2.5; null — отключить)
+  max_daily_loss_pct: 0.05  # дневной убыток > 5% — новые сделки до конца суток (UTC) не открываются
+  cooldown_bars: 2          # пауза в свечах после закрытия сделки по паре
+  leverage: 2               # только для swap
+  allow_short: true         # только для swap (на спот шорт всегда выключен)
+
+fees:
+  taker: 0.001              # комиссия (0.1%) — для paper и бэктеста
+  slippage: 0.0005          # проскальзывание (0.05%) — для paper и бэктеста
+
+paper:
+  initial_balance: 1000     # стартовый виртуальный баланс в USDT
+
+live:
+  # Для swap: дополнительно выставлять стоп-лосс на бирже вместе с ордером входа.
+  # Защищает позицию, даже если бот/сервер упал. Рекомендуется.
+  exchange_stop_loss: true
+  # Подтверждение, что вы понимаете риски реальной торговли. Без true режим live не запустится.
+  i_understand_the_risks: false
+
+telegram:
+  enabled: false            # токен и chat_id — в .env
+  notify_errors: true
+
+storage:
+  state_file: state/state.json
+  trades_file: state/trades.csv
+  log_file: logs/bot.log
